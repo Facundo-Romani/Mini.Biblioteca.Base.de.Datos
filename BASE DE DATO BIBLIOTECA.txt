@@ -1,0 +1,180 @@
+Código SQL QUERYS
+
+___________________________________________________________________________________________________________
+
+
+**CREACIÓN DE TABLAS**  
+
+create table lectores (id_lectores serial primary key ,nombre varchar (30), apellido varchar (30),email varchar(50),fecha_de_nacimiento date);
+
+___________________________________________________________________________________________________________
+
+**NSERTAR DATOS**
+
+insert into lectores values (default,'Juan Alberto' ,'Cortéz' ,' juancortez@gmail.com ',' 20/06/1983');
+insert into lectores values(default,'Antonia', 'de los Ríos', 'antoniarios_23@yahoo.com' ,' 24/11/1978');
+insert into lectores values(default,'Nicolás',' Martin', 'nico_martin23@gmail.com' ,' 11/07/1986');
+insert into lectores values(default,'Néstor', 'Casco' ,'nestor_casco2331@hotmmail.com' ,'11/02/1981');
+insert into lectores values(default,'Lisa', 'Pérez' , 'lisperez@hotmail.com ', ' 11/08/1994');
+insert into lectores values(default,'Milagros', 'Pastoruti' ,' mili_2231@gmail.com ' , ' 22/01/2001');
+insert into lectores values(default,'Pedro' ,'Alonso' ,'alonso.pedro@impermebilizantesrosario.com' , '05/09/1983');
+insert into lectores values(default,'Arturo Ezequiel', 'Ramírez', 'artu.rama@outlook.com' , '29/03/1998');
+insert into lectores values(default,'Juan Ignacio', 'Altarez','juanaltarez.223@yahoo.com' ,'24/08/1975');
+
+
+insert into libros values ( default,'Cementerio de animales','Ediciones de Mente' ,' Stephen King',  '4568874');
+insert into libros values	(default,'En el nombre de la rosa','Editorial España' , 'Umberto Eco' , '44558877');
+insert into libros values (default, 'Cien años de soledad' , 'Sudamericana' , 'Gabriel García Márquez' ,' 7788845');
+insert into libros values( default,'El diario de Ellen Rimbauer' , 'Editorial Maine' , 'Stephen King' , '45699874');
+insert into libros values( default,'La hojarasca' ,'Sudamericana', 'Gabriel García Márquez' ,'7787898');
+insert into libros values( default,'El amor en los tiempos del cólera ', 'Sudamericana ', 'Gabriel García Márquez ',' 2564111');
+insert into libros values(  default,'La casa de los espíritus' , 'Ediciones Chile' , 'Isabel Allende' , '5544781');
+insert into libros values( default, 'Paula' , 'Ediciones chile' , ' Isabel Allende' , '22545447');
+insert into libros values(  default,'La tregua' ,' Alfa' ,' Mario Benedetti' , '2225412');
+insert into libros values( default,' Gracias por el fuego' ,' Alfa' , 'Mario Benedetti' , '88541254');
+
+
+___________________________________________________________________________________________________________
+
+
+**TABLA PIVOTE**
+
+create table prestamo (id_lectores int , id_libros int,
+					   foreign key (id_lectores) references lectores(id_lectores),
+					   foreign key (id_libros) references libros(id_libros),
+					   primary key (id_lectores,id_libros));
+
+
+___________________________________________________________________________________________________________
+
+
+**CONSULTAS**
+
+select nombre_libro, count(prestamo.id_libros)
+from libros,prestamo 
+where libros.id_libros = prestamo.id_libros
+group by nombre_libro;
+
+___________________________________________________________________________________________________________
+
+**BORRAR UN PRESTAMO DE UN LECTOR **
+
+delete from prestamo 
+where id_lectores = 1 and id_libros = 1;
+
+
+__________________________________________________________________________________________________________
+
+**EXTRAER EDAD DE LECTORES**
+
+select extract (year from age(fecha_de_nacimiento)) from lectores;
+
+
+___________________________________________________________________________________________________________
+** EXTRAER EDAD PROMEDIO CON AVG**
+
+select AVG (extract (year from age(fecha_de_nacimiento))) AS edad_promedio from lectores;
+
+select MAX (extract (year from age(fecha_de_nacimiento))) AS edad_alta from lectores;
+
+select min (extract (year from age(fecha_de_nacimiento))) AS edad_minima from lectores;
+
+___________________________________________________________________________________________________________
+**CREAR UNA VISTA**
+
+create view libros_prestados AS
+
+select nombre, nombre_libro, nombre_editorial ,isbn 
+from lectores,libros,prestamo
+where lectores.id_lectores = prestamo.id_lectores
+and libros.id_libros = prestamo.id_libros;
+
+
+select * from libros_prestados    // LLAMAMOS A LA VISTA //
+
+___________________________________________________________________________________________________________
+
+**CREAR FUNCION DE DEVOLUCION CON RETORNO VOID (NO RETORNA NADA)**
+
+create function devolucion (id_lec int,id_lib int) returns void as
+$$
+
+delete from prestamo 
+where id_lectores = id_lec and id_libros = id_lib
+
+$$
+language sql;
+
+
+
+
+___________________________________________________________________________________________________________
+
+
+**TABLA PARA REGISTRAR DEVOLUCIONES**
+
+CREATE TABLE log(
+id_lectores integer,
+id_libros integer,
+fecha_de_devolucion timestamp);
+
+
+select * from log
+
+___________________________________________________________________________________________________________
+
+**FUNCION PARA LA DEVOLUCION**
+
+CREATE OR REPLACE FUNCTION registro_devol_trigger_fnc() RETURNS trigger AS $$
+
+BEGIN 
+
+	INSERT INTO log (
+	id_lectores,
+	id_libros,
+	fecha_de_devolucion) 
+	VALUES (OLD.id_lectores, OLD.id_libros, NOW());
+
+	RETURN OLD;
+END;
+$$ LANGUAGE 'plpgsql';
+
+
+___________________________________________________________________________________________________________
+
+**CREAR EL TRUGGER**
+
+CREATE TRIGGER devol_trigger_fnc
+BEFORE DELETE
+on prestamo
+FOR EACH ROW
+EXECUTE PROCEDURE devol_trigger_fnc();
+
+
+SELECT * FROM prestamo
+
+SELECT * FROM libros
+
+
+SELECT * FROM log
+
+
+
+___________________________________________________________________________________________________________
+
+**FUNCION LIBROS PRESTADOS**
+
+
+CREATE FUNCTION libros_prestados() RETURNS INT AS
+$$
+
+SELECT COUNT(id_libros) 
+FROM PRESTAMO
+
+
+
+$$
+LANGUAGE SQL;
+
+
+SELECT libros_prestados()
